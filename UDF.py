@@ -1,6 +1,6 @@
-from dash import Input, Output, dash_table
+from dash import dash_table
 from sklearn.feature_extraction.text import CountVectorizer
-from nltk import word_tokenize, pos_tag
+from nltk import word_tokenize
 from nltk.stem import WordNetLemmatizer
 import pandas as pd
 import base64
@@ -22,9 +22,9 @@ def remove_stopwords(texts):
              if word not in stop_words] for doc in texts]
 
 stopwords = set(STOPWORDS)
-def plot_wordcloud(df):
+def plot_wordcloud(df,columnname):
     comment_words = ''
-    for val in df.Ticket_Summary:
+    for val in df[columnname].values:
         # typecaste each val to string
         val = str(val)
         # split the value
@@ -33,7 +33,14 @@ def plot_wordcloud(df):
         for i in range(len(tokens)):
             tokens[i] = tokens[i].lower()
         comment_words += " ".join(tokens) + " "
-    wordcloud = WordCloud(width=800, height=800,
+    if len(comment_words.replace(" ",""))==0:
+        comment_words = "No_Meaningful_TextData"
+        wordcloud = WordCloud(width=800, height=800,
+                                  background_color='white',
+                                  stopwords=stopwords,
+                                  min_font_size=5).generate(comment_words)
+    else:
+        wordcloud = WordCloud(width=800, height=800,
                               background_color='white',
                               stopwords=stopwords,
                               min_font_size=5).generate(comment_words)
@@ -56,7 +63,7 @@ def parse_contents(contents, filename):
         return None
     return df
 
-def frequency_count(df):
+def frequency_count(df,columnname):
     class LemmaTokenizer(object):  # this lemmatization function will be used as an argument in countvectorizer
         def __init__(self):
             self.wnl = WordNetLemmatizer()
@@ -64,7 +71,7 @@ def frequency_count(df):
             return [self.wnl.lemmatize(t) for t in word_tokenize(articles)]
     vectorizer = CountVectorizer(lowercase=True,ngram_range=(1,5), max_features=5000,
     stop_words='english', tokenizer=LemmaTokenizer())
-    TFIDF = vectorizer.fit_transform(df['Ticket_Summary']).toarray()
+    TFIDF = vectorizer.fit_transform(df[columnname]).toarray()
     TFIDF = pd.DataFrame(TFIDF,columns =vectorizer.get_feature_names())
     TFIDF= TFIDF[[x for x in TFIDF.columns if len(x)>1]].T
     TFIDF['totalfrequency'] = TFIDF.sum(axis=1)
