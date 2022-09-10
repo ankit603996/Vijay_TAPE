@@ -1,26 +1,20 @@
-from dash.exceptions import PreventUpdate
-import dash
-import dash_core_components as dcc
-import dash_html_components as html
-from io import BytesIO
+from dash import Input, Output, dash_table
+from sklearn.feature_extraction.text import CountVectorizer
+from nltk import word_tokenize, pos_tag
+from nltk.stem import WordNetLemmatizer
 import pandas as pd
-import UDF
-from dash import Dash, Input, Output, callback, dash_table
 import base64
 import io
 import gensim
 from gensim.utils import simple_preprocess
-import gensim.corpora as corpora
-#import nltk
-#nltk.download('omw-1.4')
-#nltk.download('stopwords')
 from wordcloud import WordCloud,STOPWORDS
 from nltk.corpus import stopwords
+import dash_html_components as html
 stop_words = stopwords.words('english')
 stop_words.extend(['from', 'subject', 're', 'edu', 'use'])
+
 def sent_to_words(sentences):
     for sentence in sentences:
-        # deacc=True removes punctuations
         yield(gensim.utils.simple_preprocess(str(sentence), deacc=True))
 
 def remove_stopwords(texts):
@@ -45,11 +39,8 @@ def plot_wordcloud(df):
                               min_font_size=5).generate(comment_words)
     return wordcloud.to_image()
 
-
-
 def parse_contents(contents, filename):
     content_type, content_string = contents.split(',')
-
     decoded = base64.b64decode(content_string)
     try:
         if 'csv' in filename:
@@ -64,12 +55,6 @@ def parse_contents(contents, filename):
         print(e)
         return None
     return df
-
-from sklearn.feature_extraction.text import CountVectorizer
-from nltk import word_tokenize, pos_tag
-#from sklearn.feature_extraction.text import TfidfVectorizer
-from nltk.stem import WordNetLemmatizer
-
 
 def frequency_count(df):
     class LemmaTokenizer(object):  # this lemmatization function will be used as an argument in countvectorizer
@@ -88,3 +73,20 @@ def frequency_count(df):
     TFIDF = TFIDF[['tokens','totalfrequency']].reset_index(drop=True).iloc[:10,]
     return TFIDF
 
+def wordcloud_ui(id, src):
+    return html.Div([html.H4("Word Cloud Image"),
+        html.Img(id = id, src=src)])
+
+def topicmodel_ui(id, data,col):
+    return html.Div([
+    html.H3("Topic Models"),
+    dash_table.DataTable(
+        id=id,data = data, columns =col
+        ),])
+
+def wordfreq_ui(id, data, col):
+        return html.Div([
+            html.H3("Tokens with Top Frequency Count"),
+            dash_table.DataTable(
+                id=id, data=data, columns=col
+            ), ])

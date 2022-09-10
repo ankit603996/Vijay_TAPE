@@ -37,23 +37,16 @@ app.layout = html.Div([
         },
         multiple=False),
     html.Br(),
-    html.Img(id="image_wc"),
+    html.Div(id ="wordcloudUI"),
     html.Br(),
-    html.H3("Topic Models"),
-    dash_table.DataTable(
-        id='datatable_lda',
-        ),
+    html.Div(id="topicmodelUI"),
     html.Br(),
-    html.H3("Tokens with Top Frequency Count"),
-    dash_table.DataTable(
-        id='datatable',
-        )
+    html.Div(id="wordfreqUI"),
 ])
 import re
 # callback table creation
-@app.callback(Output('image_wc', 'src'),
-                Output('datatable_lda', 'data'),Output('datatable_lda', 'columns'),
-                Output('datatable', 'data'),Output('datatable', 'columns'),
+@app.callback(Output('wordcloudUI', 'children'),
+                Output('topicmodelUI', 'children'),Output('wordfreqUI', 'children'),
               [Input('upload-data', 'contents'),
                Input('upload-data', 'filename')])
 def update_output(contents, filename):
@@ -67,6 +60,7 @@ def update_output(contents, filename):
         df['Ticket_Summary'] = [re.sub(r"[\s]", " ", w, flags=re.I) for w in df['Ticket_Summary']]
         img = BytesIO()
         UDF.plot_wordcloud(df).save(img, format='PNG')
+        src = 'data:image/png;base64,{}'.format(base64.b64encode(img.getvalue()).decode())
         data = df.Ticket_Summary.values.tolist()
         data_words = list(UDF.sent_to_words(data))
         # remove stop words
@@ -89,9 +83,9 @@ def update_output(contents, filename):
         #word frequency count
         freq = UDF.frequency_count(df)
         print(freq.shape,"print(freq.shape)")
-        return 'data:image/png;base64,{}'.format(base64.b64encode(img.getvalue()).decode()), \
-               topic_models.to_dict('records'),[{"name": i, "id": i} for i in topic_models.columns],\
-               freq.to_dict('records'),[{"name": i, "id": i} for i in freq.columns]
+        return UDF.wordcloud_ui("image_wc", src), \
+               UDF.topicmodel_ui("datatable_lda", topic_models.to_dict('records'),[{"name": i, "id": i} for i in topic_models.columns]),\
+               UDF.wordfreq_ui("datatable",  freq.to_dict('records'),[{"name": i, "id": i} for i in freq.columns])
     else:
         raise PreventUpdate
 
